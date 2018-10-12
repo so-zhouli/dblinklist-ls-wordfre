@@ -21,29 +21,17 @@ typedef struct DList
     struct Node *tail;
 }DList;
 
-/*typedef struct word
-{
-  char w[WORD_LEN];
-  int num;
-  int pos;
-}word;*/
+typedef int (* dbll_compare_cb)(void *elem1,void *elem2);
+typedef void (* data_operate_cb)(pNODE p_node,void* aide_para);    
 
-    
-DList* CreateDbLinkList();
-void Destory(DList*list);
-void list_combine(DList*list1,DList*list2);
-void(*show)(DList*list);
-//void showDbLinkList(DList*list);
-void ReverseDbLinkList(DList*list);
-//int InsertEleDbLinkList(DList*list, int pos, Elemtype value);
-int TailInsertElem(DList*list,Elemtype value);
-void DeleteEleDbLinkList(DList*list,pNODE p);
-//int compare_word_case(Elemtype elem1, Elemtype elem2);
-//int compare_findword(Elemtype elem1, Elemtype elem2);
-//int compare_findword_case(Elemtype elem1, Elemtype elem2);
-//int compare_word(Elemtype elem1, Elemtype elem2);
-//int compare_num(Elemtype elem1, Elemtype elem:wq2);
-//int compare_pos(Elemtype elem1, Elemtype elem2);
-pNODE LookForDbLinkList(DList*list,Elemtype key,int (*compare)(Elemtype elem1, Elemtype elem2));
-void QuickSort(pNODE p_left,pNODE p_right,int left,int right,int (*compare)(Elemtype elem1, Elemtype elem2));//len初始为1
-int (*compare)(Elemtype elem1, Elemtype elem2);
+
+DList* create_dbll();
+void destory_dbll(DList*list);
+void combine_dbll(DList*list1,DList*list2);
+void reverse_dbll(DList*list);
+int insert_elem_dbll(DList*list, int pos, Elemtype value);
+int tail_insert_elem_dbll(DList*list,Elemtype value);
+void delete_elem_dbll(DList*list,pNODE p_node);
+pNODE search_elem_dbll(DList*list,Elemtype key,dbll_compare_cb compare);
+void quick_sort_dbll(pNODE p_left,pNODE p_right,int left,int right,dbll_compare_cb compare);//len初始为1
+void travel_dbll(DList* list,data_operate_cb data_operate,void* aide_para);

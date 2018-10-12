@@ -4,16 +4,19 @@
 
 void find_word_insert(word*ahead,DList*list,DList*total_list)
 {
-    if(compare==compare_findword)
-		printf("compare_findword\n");
-	pNODE p=LookForDbLinkList(list,ahead,compare);
+    dbll_compare_cb compare;
+	if(opt_create_case)
+        compare=compare_findword_case;
+    else
+        compare=compare_findword;
+	pNODE p=search_elem_dbll(list,ahead,compare);
     if(p==NULL)
     {
          word* p_new=(word*)malloc(sizeof(word));
          strcpy(p_new->w,ahead->w);
          p_new->num=1;
          p_new->pos=total_list->len+1;
-         TailInsertElem(list,p_new);
+         tail_insert_elem_dbll(list,p_new);
          total_list->len++;
     }  
     else
@@ -130,7 +133,7 @@ void operate(DList*word_list[27],char filename[])
     }
     int combine_num=1;
     while(combine_num<27)
-        list_combine(word_list[0],word_list[combine_num++]);
+        combine_dbll(word_list[0],word_list[combine_num++]);
     free(ahead); 
     fclose(fp);
     //printf("lookfor time:%d\n",t);
@@ -155,24 +158,13 @@ void help(void)
 
 int main(int argc,char* argv[])
 {   
-    int t1=0;
-    int t2=0;
-    int t3=0;
-    int t4=0;
     int opt=0;
-    int flag_create_case=0;
-    int flag_create=0;
-    int flag_word=0;
-    int flag_num=0;
-    int flag_pos=0;
-    int flag_show=0;
-    int flag_reverseshow=0;
     int option_index=0;
     int list_num=0;
     DList*word_list[27];
     while(list_num<27)
     {
-        word_list[list_num++]=CreateDbLinkList();
+        word_list[list_num++]=create_dbll();
     }
     char filename[60];
     static struct option long_options[]=
@@ -191,78 +183,67 @@ int main(int argc,char* argv[])
                 strcpy(filename,optarg);
                 break;
             case 'c':
-                flag_create_case=1;
+                opt_create_case=true;
                 break;
             case 'C':
-                flag_create=1;
+                opt_create=true;
                 break;
             case 'w':
-                flag_word=1;
+                opt_word_sort=true;
                 break;
             case 'n':
-                flag_num=1;
+                opt_num_sort=true;
                 break;
             case 'p':
-                flag_pos=1;
+                opt_pos_sort=true;
                 break;
             case 's':
-                flag_show=1;
+                opt_show=true;
                 break;
             case 'S':
-                flag_reverseshow=1;
+                opt_reverse_show=true;
                 break;
             default:exit(0);
 
         }
     }
-    if((flag_create_case&&flag_create)||(flag_word+flag_num+flag_pos>1)||(flag_show&&flag_reverseshow))
+    if((opt_create_case&&opt_create)||(opt_word_sort+opt_num_sort+opt_pos_sort>1)||(opt_show&&opt_reverse_show))
     {    
         printf("command conflict!\n");
         return -1;
     }
-    if((flag_create_case||flag_create)==0)
+    if((opt_create_case||opt_create)==0)
     {    
         printf("command illegal!--'c'or'C'is neccessary for operate.\n");
         return -1;
     }
-    if(flag_create_case)
-        compare=compare_findword_case;
-    else
-        compare=compare_findword;
-    t1=clock();
     operate(word_list,filename);
-    t2=clock();
-    if(flag_num||flag_word||flag_pos)
+    //quicksort by word or pos num
+	dbll_compare_cb compare;
+	if(opt_num_sort||opt_word_sort||opt_pos_sort)
     {
-        if(flag_num)
+		if(opt_num_sort)
             compare=compare_num;
-        else if(flag_pos)
+        else if(opt_pos_sort)
             compare=compare_pos;
-        else if(flag_create)
+        else if(opt_create)
             compare=compare_word;
         else
             compare=compare_word_case;
             
-        t3=clock();
-        QuickSort(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare);
-        t4=clock();
+        quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare);
     }
-    if(flag_show||flag_reverseshow)
+    if(opt_show||opt_reverse_show)
     {
-        if(flag_show)
-            show=showDbLinkList;
-        else
-            show=reverseshowDbLinkList;
-        show(word_list[0]);
+        if(opt_reverse_show)
+            reverse_dbll(word_list[0]);
+		show_word_list(word_list[0]);
     }
-    printf("total_lenth:%d\n",word_list[0]->len);
     list_num=0;
     while(list_num<27)
     {
-        Destory(word_list[list_num++]);
+        destory_dbll(word_list[list_num++]);
     }
-    printf("create time:%d\n",t2-t1);
-    printf("quick sort time:%d\n",t4-t3);
     return 0;
 }
 

@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 		if(optind==argc)
 		{
 			DList*filelist=NULL;
-			filelist=CreateDbLinkList();
+			filelist=create_dbll();
 			do_ls(".",filelist);
 			opt_operate(filelist);
 		}
@@ -78,8 +78,14 @@ int main(int argc, char* argv[])
 				if(flag_many)
 					printf("%s:\n",argv[optind]);
 				DList*filelist=NULL;
-				filelist=CreateDbLinkList();
+				filelist=create_dbll();
 				do_ls(argv[optind],filelist);
+				if(filelist->len==0)
+				{
+					destory_dbll(filelist);
+					optind++;
+					continue;
+				}
 				opt_operate(filelist);
 				optind++;
 				if(optind!=argc)
@@ -108,6 +114,7 @@ void opt_operate(DList* list)
 	{
 		delete_backup_file(list);
 	}
+	dbll_compare_cb compare;
 	switch(sort_type)
 	{
 		case sort_none:
@@ -124,11 +131,11 @@ void opt_operate(DList* list)
 	}
 	if(sort_type!=sort_none)
 	{
-		QuickSort(list->head->next,list->tail,1,list->len,compare);
+		quick_sort_dbll(list->head->next,list->tail,1,list->len,compare);
 	}
 	if(sort_type==sort_mtime)
 	{
-		ReverseDbLinkList(list);
+		reverse_dbll(list);
 	}
 	get_print_width(list);
 	if(print_list||list_no_group||numeric_uid_gid)
@@ -140,6 +147,6 @@ void opt_operate(DList* list)
 		show_filename(list);
 	}
 	free_data(list);
-	Destory(list);
+	destory_dbll(list);
 	
 }

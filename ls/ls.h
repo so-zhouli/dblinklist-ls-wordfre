@@ -20,7 +20,7 @@
 
 //#define DEBUG
 #define DEV_WIDTH (pw.major_dev_width+pw.minor_dev_width)
-#define PRINT_WIDTH  (print_list||list_no_group||numeric_uid_gid)?(0):(pw.filename_width+1-strlen(((file_info*)(p1->data))->filename))
+#define PRINT_WIDTH  (print_list||list_no_group||numeric_uid_gid)?(0):(fmt_width+2-strlen(((file_info*)(p_node->data))->filename))
 
 
 enum sort_type
@@ -63,6 +63,17 @@ struct print_width
 };
 struct print_width pw;
 
+typedef struct col_row_caculate
+{
+	int col;
+	int row;
+	int cols;
+	int rows;
+	int *col_width;
+}col_row_info;
+
+
+
 typedef struct file_info
 {
 	char* filename;
@@ -85,10 +96,14 @@ void opt_operate(DList* list);
 void delete_dot_file(DList* list);
 void delete_backup_file(DList* list);
 void delete_hidden_file(DList* list);
+
 int compare_size(void* elem1,void* elem2);
 int compare_name(void* elem1,void* elem2);
 int compare_mtime(void* elem1,void* elem2);
 int compare_dot(void* elem1,void* elem2);
+int compare_first_char(void* elem1,void* elem2);
+int compare_last_char(void* elem1,void* elem2);
+
 void show_test(DList* list);
 void init_value();
 void init_width();
@@ -96,11 +111,37 @@ void show_list(DList* list);
 void show_filename(DList* list);
 void print_spaces();
 void free_data(DList* list);
-int get_filename_width(DList* list);
-int get_inode_width(DList*list);
-int get_nlink_width(DList* list);
-int get_size_width(DList*list);
+
+
 void get_print_width(DList* list);
-int get_major_dev_width(DList* list);
-int get_minor_dev_width(DList* list);
-void print_size_dev(pNODE p1,DList* list);
+
+void get_filename_width(DList* list);
+void filename_operate(pNODE p_node,void* aide_para);
+
+void get_inode_width(DList*list);
+void inode_operate(pNODE p_node,void* aide_para);
+
+void get_nlink_width(DList* list);
+void nlink_operate(pNODE p_node,void* aide_para);
+
+void get_size_width(DList*list);
+void size_operate(pNODE p_node,void*aide_para);
+
+void get_uid_width(DList*list);
+void uid_operate(pNODE p_node,void*aide_para);
+
+void get_gid_width(DList*list);
+void gid_operate(pNODE p_node,void* aide_para);
+
+void get_major_dev_width(DList* list);
+void major_dev_operate(pNODE p_node,void*aide_para);
+
+void get_minor_dev_width(DList* list);
+void minor_dev_operate(pNODE p_node,void*aide_para);
+
+void label_col_row_operate(pNODE p_node,void* aide_para);
+void caculate_col_width_operate(pNODE p_node,void* aide_para);
+void get_total_operate(pNODE p_node,void* aide_para);
+void show_filename_operate(pNODE p_node,void* aide_para);
+void show_list_operate(pNODE p_node,void* aide_para);
+void free_data_operate(pNODE p_node,void * aide_para);

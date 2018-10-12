@@ -1,42 +1,25 @@
 #include"dbll.h"
 #include"wordfre.h"
 
-void showDbLinkList(DList*list)  //Traversing the linked list
+void show_word_list(DList*list)  //Traversing the linked list
 {   if(list->len==0)
         {
                 printf("the list is empty!\n");
                 return;
         }
-        pNODE p= list->head->next;
+        pNODE p_node= list->head->next;
         printf("Print list as follow：  \n ");
-        while (p!= NULL)
-        {
-                printf("word:%-20s\tfrequance:%-5d\t\tposition:%-5d\n ", ((word*)(p->data))->w,((word*)(p->data))->num,((word*)(p->data))->pos);
-                p = p->next;
-        }
+		char* p_null=NULL;
+        travel_dbll(list,show_operate,p_null);
         putchar('\n');
         printf("The length of the list is:%d\n",list->len);
 }
 
-void reverseshowDbLinkList(DList*list)  //Traversing the linked list
-{   if(list->len==0)
-        {
-                printf("the list is empty!\n");
-                return;
-        }
-        pNODE p= list->tail;
-        printf("Print list as follow：  \n ");
-        while (p!= list->head)
-        {
-                printf("word:%-20s\tfrequance:%-5d\t\tposition:%-5d\n ", ((word*)(p->data))->w,((word*)(p->data))->num,((word*)(p->data))->pos);
-                p = p->pre;
-        }
-        putchar('\n');
-        printf("The length of the list is:%d\n",list->len);
+void show_operate(pNODE p_node,void*aide_para)
+{
+	printf("word:%-20s\tfrequance:%-5d\t\tposition:%-5d\n ", ((word*)(p_node->data))->w,((word*)(p_node->data))->num,((word*)(p_node->data))->pos);
+
 }
-
-
-
 
 
 

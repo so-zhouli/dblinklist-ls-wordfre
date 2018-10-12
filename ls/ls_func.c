@@ -15,7 +15,8 @@ void do_ls(char *dirname,DList *list)
 		if(lstat(dirname, &(file_info_new->stat_buf))<0)// cannot stat
 		{
 			free(file_info_new);
-			printf("lstat error for %s",dirname);       // say why;/
+			printf("lstat error for %s\n",dirname);       // say why;/
+			return;
 		}
 		else
 		{
@@ -27,7 +28,7 @@ void do_ls(char *dirname,DList *list)
 			file_info_new->filename=filename_new;
 			file_info_new->filepath=filepath_new;
 			get_file_info(dirname,file_info_new);
-			TailInsertElem(list,file_info_new);
+			tail_insert_elem_dbll(list,file_info_new);
 		}
 	}
 	else
@@ -46,7 +47,7 @@ void do_ls(char *dirname,DList *list)
 				printf("%-15s",file_info_new->modestr);
 				printf("%d\n",file_info_new->stat_buf.st_uid);
 			#endif
-			TailInsertElem(list,file_info_new);
+			tail_insert_elem_dbll(list,file_info_new);
 		}
 		closedir(dir_ptr);
 	}
@@ -119,6 +120,8 @@ void get_file_info(char* filepath,file_info* file_info_new)
 		//	readlink_absolutely(fi_new,dirpath);
 		}
 	}
+	else
+		file_info_new->linkfile=NULL;
 }
 
 
@@ -212,47 +215,47 @@ char *gid_to_name(gid_t gid)
 
 void delete_hidden_file(DList*list)//删除隐藏文件
 {
-	pNODE p1=list->head->next;
-	pNODE p2=NULL;
-	while(p1!=NULL)
+	pNODE p_node=list->head;
+	char *first_char=".";
+	dbll_compare_cb compare;
+	compare=compare_first_char;
+	while(p_node!=NULL)
 	{
-		if(((file_info*)(p1->data))->filename[0]=='.')
+		p_node=search_elem_dbll(list,first_char,compare);
+		if(p_node!=NULL)
 		{
-			free(((file_info*)(p1->data))->filename);
-			free(((file_info*)(p1->data))->filepath);
-			p2=p1;
-			p1=p1->next;
-			DeleteEleDbLinkList(list,p2);
-		}
-		else
-		{
-			p1=p1->next;
-		}
+			free(((file_info*)(p_node->data))->filename);
+			free(((file_info*)(p_node->data))->filepath);
+			delete_elem_dbll(list,p_node);
+		}	
 	}
 }
 
+
+
 void delete_dot_file(DList*list)//删除隐藏文件
 {
-	pNODE p1=list->head;
-	pNODE p2=list->head;
+	pNODE p_node=list->head;
+	pNODE p_node1=list->head;
 	char*p_dot=".";
 	char*p_dotdot="..";
+	dbll_compare_cb compare;
 	compare=compare_dot;
-	while(p1!=NULL&&p2!=NULL)
+	while(p_node!=NULL&&p_node1!=NULL)
 	{
-		p1=LookForDbLinkList(list,p_dot,compare);
-		p2=LookForDbLinkList(list,p_dotdot,compare);
-		if(p1!=NULL)
+		p_node=search_elem_dbll(list,p_dot,compare);
+		p_node1=search_elem_dbll(list,p_dotdot,compare);
+		if(p_node!=NULL)
 		{
-			free(((file_info*)(p1->data))->filename);
-			free(((file_info*)(p1->data))->filepath);
-			DeleteEleDbLinkList(list,p1);
+			free(((file_info*)(p_node->data))->filename);
+			free(((file_info*)(p_node->data))->filepath);
+			delete_elem_dbll(list,p_node);
 		}
-		if(p2!=NULL)
+		if(p_node1!=NULL)
 		{
-			free(((file_info*)(p2->data))->filename);
-			free(((file_info*)(p2->data))->filepath);
-			DeleteEleDbLinkList(list,p2);
+			free(((file_info*)(p_node1->data))->filename);
+			free(((file_info*)(p_node1->data))->filepath);
+			delete_elem_dbll(list,p_node1);
 		}
 	}
 }
@@ -260,24 +263,41 @@ void delete_dot_file(DList*list)//删除隐藏文件
 
 void delete_backup_file(DList*list)//删除备份文件
 {
-	pNODE p1=list->head->next;
-	pNODE p2=NULL;
-	while(p1!=NULL)
+	pNODE p_node=list->head;
+	char* last_char="~";
+	dbll_compare_cb compare;
+	compare=compare_last_char;
+	while(p_node!=NULL)
 	{
-		if(*(((file_info*)(p1->data))->filename+((file_info*)(p1->data))->filename_length-1)=='~')
+		p_node=search_elem_dbll(list,last_char,compare);
+		if(p_node!=NULL)
 		{
-			free(((file_info*)(p1->data))->filename);
-			free(((file_info*)(p1->data))->filepath);
-			p2=p1;
-			p1=p1->next;
-			DeleteEleDbLinkList(list,p2);
-		}
-		else
-		{
-			p1=p1->next;
+			free(((file_info*)(p_node->data))->filename);
+			free(((file_info*)(p_node->data))->filepath);
+			delete_elem_dbll(list,p_node);
 		}
 	}
 }
+
+
+int compare_last_char(void* elem1,void* elem2)
+{
+	if(*(((file_info*)elem1)->filename+((file_info*)elem1)->filename_length-1)==*((char*)elem2))
+		return 0;
+	else
+		return -1;
+		
+}
+
+
+int compare_first_char(void* elem1,void* elem2)
+{
+	if(*(((file_info*)elem1)->filename)==*((char*)elem2))
+		return 0;
+	else
+		return -1;
+}
+
 
 
 int compare_name(void* elem1,void* elem2)
@@ -338,469 +358,533 @@ int compare_mtime(void* elem1,void* elem2)
 		return 0;
 }
 
-int get_filename_width(DList*list)
+void get_filename_width(DList*list)
 {
-	pNODE p1=list->head->next;
-	int filename_length=0;
-	while(p1!=NULL)
-	{
-		if(filename_length<((file_info*)(p1->data))->filename_length)
-			filename_length=((file_info*)(p1->data))->filename_length;
-		p1=p1->next;
-	}
-//	printf("%d\n",filename_length);
-	return filename_length;
+	char* p_null=NULL;
+	travel_dbll(list,filename_operate,p_null);
 }
 
-
-int get_inode_width(DList* list)
+void filename_operate(pNODE p_node,void* aide_para)
 {
-	pNODE p1=list->head->next;
-	int inode_length=0;
-	long int i;
-	int j=0;
-	while(p1!=NULL)
+	if(pw.filename_width<((file_info*)(p_node->data))->filename_length)
+		pw.filename_width=((file_info*)(p_node->data))->filename_length;
+}
+
+void get_inode_width(DList*list)
+{
+	char* p_null=NULL;
+	travel_dbll(list,inode_operate,p_null);
+}
+
+void inode_operate(pNODE p_node,void* aide_para)
+{
+	long int inode_value=0;
+	int inode_len=0;
+	inode_value=(long int)(((file_info*)(p_node->data))->stat_buf.st_ino);
+	if(inode_value==0)
+		inode_len=1;
+	while(inode_value!=0)
 	{
-		i=(long int)(((file_info*)(p1->data))->stat_buf.st_ino);
-		if(i==0)
-			j=1;
-		while(i!=0)
+		inode_value=inode_value/10;
+		inode_len++;
+	}
+	if(pw.inode_width<inode_len)
+		pw.inode_width=inode_len;
+}
+
+void get_nlink_width(DList*list)
+{
+	char* p_null=NULL;
+	travel_dbll(list,nlink_operate,p_null);
+}
+
+void nlink_operate(pNODE p_node,void* aide_para)
+{
+	long int nlink_value=0;
+	int nlink_len=0;
+	nlink_value=(long int)(((file_info*)(p_node->data))->stat_buf.st_nlink);
+	if(nlink_value==0)
+		nlink_len=1;
+	while(nlink_value!=0)
+	{
+		nlink_value=nlink_value/10;
+		nlink_len++;
+	}
+	if(pw.nlink_width<nlink_len)
+		pw.nlink_width=nlink_len;
+}
+
+void get_size_width(DList*list)
+{
+	char* p_null=NULL;
+	travel_dbll(list,size_operate,p_null);
+}
+
+void size_operate(pNODE p_node,void* aide_para)
+{
+	long int size_value=0;
+	int size_len=0;
+	size_value=(long int)(((file_info*)(p_node->data))->stat_buf.st_size);
+	if(size_value==0)
+		size_len=1;
+	while(size_value!=0)
+	{
+		size_value=size_value/10;
+		size_len++;
+	}
+	if(pw.size_width<size_len)
+		pw.size_width=size_len;
+}
+
+void get_uid_width(DList* list)
+{
+	char* p_null=NULL;
+	travel_dbll(list,uid_operate,p_null);
+}
+
+void uid_operate(pNODE p_node,void* aide_para)
+{
+	int uid_value=0;
+	int uid_len=0;
+	if(numeric_uid_gid)
+	{
+		uid_value=(int)(((file_info*)(p_node->data))->stat_buf.st_uid);
+		if(uid_value==0)
+			uid_len=1;
+		while(uid_value!=0)
 		{
-			i=i/10;
-			j++;
+			uid_value=uid_value/10;
+			uid_len++;
 		}
-		if(inode_length<j)
-			inode_length=j;
-		j=0;
-		p1=p1->next;
 	}
-	return inode_length;
+	else
+		uid_len=(int)(strlen(uid_to_name(((file_info*)(p_node->data))->stat_buf.st_uid)));
+	if(pw.uid_width<uid_len)
+		pw.uid_width=uid_len;
 }
 
-
-int get_nlink_width(DList* list)
+void get_gid_width(DList* list)
 {
-	pNODE p1=list->head->next;
-	int nlink_length=0;
-	long int i;
-	int j=0;
-	while(p1!=NULL)
-	{
-		i=(long int)(((file_info*)(p1->data))->stat_buf.st_nlink);
-		if(i==0)
-			j=1;
-		while(i!=0)
-		{
-			i=i/10;
-			j++;
-		}
-		if(nlink_length<j)
-			nlink_length=j;
-		j=0;
-		p1=p1->next;
-	}
-	return nlink_length;
+	char* p_null=NULL;
+	travel_dbll(list,gid_operate,p_null);
 }
 
-int get_uid_width(DList* list)
+void gid_operate(pNODE p_node,void* aide_para)
 {
-	pNODE p1=list->head->next;
-	int uid_length=0;
-	int i;
-	int j=0;
-	while(p1!=NULL)
+	int gid_value=0;
+	int gid_len=0;
+	if(numeric_uid_gid)
 	{
-		if(numeric_uid_gid)
+		gid_value=(int)(((file_info*)(p_node->data))->stat_buf.st_gid);
+		if(gid_value==0)
+			gid_len=1;
+		while(gid_value!=0)
 		{
-			i=(int)(((file_info*)(p1->data))->stat_buf.st_uid);
-			if(i==0)
-				j=1;
-			while(i!=0)
-			{
-				i=i/10;
-				j++;
-			}
+			gid_value=gid_value/10;
+			gid_len++;
 		}
-		else
-			j=(int)(strlen(uid_to_name(((file_info*)(p1->data))->stat_buf.st_uid)));
-		if(uid_length<j)
-			uid_length=j;
-		j=0;
-		p1=p1->next;
 	}
-	return uid_length;
-
+	else
+		gid_len=(int)(strlen(gid_to_name(((file_info*)(p_node->data))->stat_buf.st_gid)));
+	if(pw.gid_width<gid_len)
+		pw.gid_width=gid_len;
 }
 
 
-int get_gid_width(DList* list)
+void get_major_dev_width(DList* list)
 {
-	pNODE p1=list->head->next;
-	int gid_length=0;
-	int i;
-	int j=0;
-	while(p1!=NULL)
-	{
-		if(numeric_uid_gid)
-		{
-			i=(int)(((file_info*)(p1->data))->stat_buf.st_gid);		
-			if(i==0)
-				j=1;
-			while(i!=0)
-			{
-				i=i/10;
-				j++;
-			}
-		}
-		else
-			j=(int)(strlen(gid_to_name(((file_info*)(p1->data))->stat_buf.st_gid)));
-		if(gid_length<j)
-			gid_length=j;
-		j=0;
-		p1=p1->next;
-	}
-	return gid_length;
-
+	char* p_null=NULL;
+	travel_dbll(list,major_dev_operate,p_null);
 }
 
-int get_major_dev_width(DList* list)
+void major_dev_operate(pNODE p_node,void* aide_para)
 {
-	pNODE p1=list->head->next;
-	int major_dev_length=0;
-	int i;
-	int j=0;
-	while(p1!=NULL)
+	int major_dev_value=0;
+	int major_dev_len=0;
+	if(((file_info*)(p_node->data))->modestr[0]=='c'||((file_info*)(p_node->data))->modestr[0]=='b')
 	{
-		if(((file_info*)(p1->data))->modestr[0]=='c'||((file_info*)(p1->data))->modestr[0]=='b')
+		major_dev_value=(int)(major(((file_info*)(p_node->data))->stat_buf.st_rdev));		
+		while(major_dev_value!=0)
 		{
-			i=(int)(major(((file_info*)(p1->data))->stat_buf.st_rdev));		
-			while(i!=0)
-			{
-				i=i/10;
-				j++;
-			}
+			major_dev_value=major_dev_value/10;
+			major_dev_len++;
 		}
-		if(major_dev_length<j)
-			major_dev_length=j;
-		j=0;
-		p1=p1->next;
 	}
-	return major_dev_length;
-	
+	if(pw.major_dev_width<major_dev_len)
+		pw.major_dev_width=major_dev_len;
 }
 
-
-
-int get_minor_dev_width(DList* list)
+void get_minor_dev_width(DList* list)
 {
-	pNODE p1=list->head->next;
-	int minor_dev_length=0;
-	int i;
-	int j=0;
-	while(p1!=NULL)
-	{
-		if(((file_info*)(p1->data))->modestr[0]=='c'||((file_info*)(p1->data))->modestr[0]=='b')
-		{
-			i=(int)(minor(((file_info*)(p1->data))->stat_buf.st_rdev));		
-			while(i!=0)
-			{
-				i=i/10;
-				j++;
-			}
-		}
-		if(minor_dev_length<j)
-			minor_dev_length=j;
-		j=0;
-		p1=p1->next;
-	}
-//	if(minor_dev_length>pw.size_width)
-//		pw.size_width=minor_dev_length;
-//	else
-//		minor_dev_length=pw.size_width;
-	return minor_dev_length;
-	
+	char* p_null=NULL;
+	travel_dbll(list,minor_dev_operate,p_null);
 }
 
-
-int get_size_width(DList* list)
+void minor_dev_operate(pNODE p_node,void* aide_para)
 {
-	pNODE p1=list->head->next;
-	int size_length=0;
-	long int i;
-	int j=0;
-	while(p1!=NULL)
+	int minor_dev_value=0;
+	int minor_dev_len=0;
+	if(((file_info*)(p_node->data))->modestr[0]=='c'||((file_info*)(p_node->data))->modestr[0]=='b')
 	{
-		i=(long int)(((file_info*)(p1->data))->stat_buf.st_size);
-		if(i==0)
-			j=1;
-		while(i!=0)
+		minor_dev_value=(int)(minor(((file_info*)(p_node->data))->stat_buf.st_rdev));		
+		while(minor_dev_value!=0)
 		{
-			i=i/10;
-			j++;
+			minor_dev_value=minor_dev_value/10;
+			minor_dev_len++;
 		}
-		if(size_length<j)
-			size_length=j;
-		j=0;
-		p1=p1->next;
 	}
-	return size_length;
+	if(pw.minor_dev_width<minor_dev_len)
+		pw.minor_dev_width=minor_dev_len;
 }
+
 
 void get_print_width(DList* list)
 {
-	pw.filename_width=get_filename_width(list);
-	pw.inode_width=get_inode_width(list);
-	pw.nlink_width=get_nlink_width(list);
-	pw.size_width=get_size_width(list);
+	get_filename_width(list);
+	get_inode_width(list);
+	get_nlink_width(list);
+	get_size_width(list);
 //	printf("size:%d\n",pw.size_width);
-	pw.uid_width=get_uid_width(list);
-	pw.gid_width=get_gid_width(list);
-	pw.major_dev_width=get_major_dev_width(list);
+	get_uid_width(list);
+	get_gid_width(list);
+	get_major_dev_width(list);
 //	printf("major:%d\n",pw.major_dev_width);
-	pw.minor_dev_width=get_minor_dev_width(list);
+	get_minor_dev_width(list);
 //	printf("minor:%d\n",pw.minor_dev_width);
 }
 
 
 int get_col_row_info(DList*list,int max_one_length)
 {
+	
 	struct winsize size;
 	ioctl(STDIN_FILENO,TIOCGWINSZ,&size);
 	int rows;
 	int cols;
-	int row;
-	int col;
+	int i=0;
+	int col=1;
+	col_row_info* p_col_row=malloc(sizeof(col_row_info));
 	cols=size.ws_col/max_one_length;
-//	printf("%d\n",size.ws_col);
+//	printf("size.ws_col:%d\n",size.ws_col);
 //	printf("max_length:%d\n",max_filename_length);
 //	printf("cols:%d\n",cols);
 	rows=list->len/cols+(list->len%cols!=0);
 	cols=list->len/rows+(list->len%rows!=0);//确定输出的行数和列数
-	pNODE p1=list->head->next;
-	for(col=1;col<=cols;col++)
+	p_col_row->rows=rows;
+	p_col_row->cols=cols;
+//	printf("rows:%d   cols:%d\n",rows,cols);
+	while(rows!=0)
 	{
-		for(row=1;row<=rows&&p1!=NULL;row++)
+		int col_width_array[cols];//每列文件名最大长度
+		int sum_col_width=0;
+		for(i=0;i<cols;i++)
+			col_width_array[i]=0;
+		p_col_row->col_width=col_width_array;
+		p_col_row->row=1;
+		p_col_row->col=1;
+		travel_dbll(list,caculate_col_width_operate,p_col_row);
+		for(i=0;i<cols;i++)
 		{
-			((file_info*)(p1->data))->row_label=row;
-			((file_info*)(p1->data))->col_label=col;
-			p1=p1->next;
+			sum_col_width+=col_width_array[i];
+		//	printf("col:%d  width:%d\n",i+1,col_width_array[i]);
+		//	printf("\n");
 		}
-	}//确定链表里面每个文件应该放在哪一行,lie
+	//	printf("sum:%d\n",sum_col_width);
+	//	printf("inode:%d\n",pw.inode_width*(print_with_inode?1:0));
+		if((sum_col_width+cols*2+(pw.inode_width+1)*cols*(print_with_inode?1:0))>size.ws_col)
+		{
+			p_col_row->rows++;
+			p_col_row->cols=list->len/p_col_row->rows+(list->len%p_col_row->rows!=0);
+			break;
+		}
+		if(rows-1==0)
+			break;
+		rows--;
+		cols=list->len/rows+(list->len%rows!=0);//确定输出的行数和列数
+		p_col_row->rows=rows;
+		p_col_row->cols=cols;
+	}
+//	printf("final rows:%d  final cols:%d\n",p1->rows,p1->cols);
+	p_col_row->row=1;
+	p_col_row->col=1;
+	travel_dbll(list,label_col_row_operate,p_col_row);//遍历，每个文件名添加行列标志
+	rows=p_col_row->rows;
+	free(p_col_row);
 	return rows;
+}
+
+void caculate_col_width_operate(pNODE p_node,void* aide_para)
+{
+	col_row_info* p_col_row=(col_row_info*)aide_para;
+	if(p_col_row->row<=p_col_row->rows)
+	{
+	//	printf("11\n");
+		if(*(p_col_row->col_width+p_col_row->col-1)<((file_info*)(p_node->data))->filename_length)
+			*(p_col_row->col_width+p_col_row->col-1)=((file_info*)(p_node->data))->filename_length;
+		p_col_row->row++;
+	//	printf("33");
+	}
+	else
+	{
+	//	printf("22");
+		p_col_row->col++;
+		p_col_row->row=1;
+		if(*(p_col_row->col_width+p_col_row->col-1)<((file_info*)(p_node->data))->filename_length)
+			*(p_col_row->col_width+p_col_row->col-1)=((file_info*)(p_node->data))->filename_length;
+		p_col_row->row++;
+	}
+}
+
+void label_col_row_operate(pNODE p_node,void* aide_para)
+{
+	col_row_info* p_col_row=(col_row_info*)aide_para;
+	if(p_col_row->col<=p_col_row->cols)
+	{
+		if(p_col_row->row<=p_col_row->rows)
+		{
+			((file_info*)(p_node->data))->row_label=p_col_row->row;
+			((file_info*)(p_node->data))->col_label=p_col_row->col;
+			p_col_row->row++;
+		}
+		else
+		{
+			p_col_row->col++;
+			p_col_row->row=1;
+			((file_info*)(p_node->data))->row_label=p_col_row->row;
+			((file_info*)(p_node->data))->col_label=p_col_row->col;
+			p_col_row->row++;
+		}
+	}
 
 }
+
 int get_total(DList* list)
 {
-	pNODE p1=list->head->next;
-	long int sum_size=0;
 	int block_num=0;
-	while(p1!=NULL)
-	{
-		block_num=block_num+((file_info*)(p1->data))->stat_buf.st_blocks;
-		p1=p1->next;
-	}
+	travel_dbll(list,get_total_operate,&block_num);
 	return block_num/2;
 
 }
-void print_inode(pNODE p1,DList* list)
+
+void get_total_operate(pNODE p_node,void *aide_para)
 {
-	if(print_with_inode)
-		printf("%*ld ",pw.inode_width,(long int)(((file_info*)(p1->data))->stat_buf.st_ino));
+	int *p_block_num=(int*)aide_para;
+	*p_block_num+=((file_info*)(p_node->data))->stat_buf.st_blocks;
 }
 
-void print_filename(pNODE p1,DList* list)
+
+void print_inode(pNODE p_node)
 {
-	if(((file_info*)(p1->data))->modestr[9]=='t')
+	if(print_with_inode)
+		printf("%*ld ",pw.inode_width,(long int)(((file_info*)(p_node->data))->stat_buf.st_ino));
+}
+
+void print_filename(pNODE p_node,int fmt_width)
+{
+	if(((file_info*)(p_node->data))->modestr[9]=='t')
 	{
-		printf(BLACK_GREEN"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(BLACK_GREEN"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
-	else if(((file_info*)(p1->data))->modestr[3]=='s')	
+	else if(((file_info*)(p_node->data))->modestr[3]=='s')	
 	{
-		printf(WHITE_RED"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(WHITE_RED"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 		
 	}
-	else if(((file_info*)(p1->data))->modestr[0]=='l')	
+	else if(((file_info*)(p_node->data))->modestr[0]=='l')	
 	{
-		printf(L_CYAN"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(L_CYAN"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
-	else if(((file_info*)(p1->data))->modestr[0]=='c'||((file_info*)(p1->data))->modestr[0]=='b')	
+	else if(((file_info*)(p_node->data))->modestr[0]=='c'||((file_info*)(p_node->data))->modestr[0]=='b')	
 	{
-		printf(L_YELLOW"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(L_YELLOW"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
-	else if(((file_info*)(p1->data))->modestr[0]=='s')	
+	else if(((file_info*)(p_node->data))->modestr[0]=='s')	
 	{
-		printf(L_MAGENTA"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(L_MAGENTA"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
-	else if(((file_info*)(p1->data))->modestr[0]=='d'&&((file_info*)(p1->data))->modestr[3]=='x')
+	else if(((file_info*)(p_node->data))->modestr[0]=='d'&&((file_info*)(p_node->data))->modestr[3]=='x')
 	{
-		printf(BLUE"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(BLUE"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
-	else if(((file_info*)(p1->data))->modestr[3]=='x')
+	else if(((file_info*)(p_node->data))->modestr[3]=='x')
 	{
-		printf(GREEN"%s"NONE,((file_info*)(p1->data))->filename);
+		printf(GREEN"%s"NONE,((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
 	else
 	{
-		printf("%s",((file_info*)(p1->data))->filename);
+		printf("%s",((file_info*)(p_node->data))->filename);
 		print_spaces(PRINT_WIDTH);
 	}
 }
 
-void print_linkfile(pNODE p1,DList* list)
+void print_linkfile(pNODE p_node)
 {
-	if(((file_info*)(p1->data))->modestr[0]=='l'&&show_linkfile==false)
+	if(((file_info*)(p_node->data))->modestr[0]=='l'&&show_linkfile==false)
 	{
-		if(stat(((file_info*)(p1->data))->filepath,&(((file_info*)(p1->data))->stat_buf))<0)
-			printf("stat error for %s\n",((file_info*)(p1->data))->filepath);
+		if(stat(((file_info*)(p_node->data))->filepath,&(((file_info*)(p_node->data))->stat_buf))<0)
+			printf("stat error for %s\n",((file_info*)(p_node->data))->filepath);
 		else
 		{
-			mode_to_letters(((file_info*)(p1->data))->stat_buf.st_mode,((file_info*)(p1->data))->modestr);
+			mode_to_letters(((file_info*)(p_node->data))->stat_buf.st_mode,((file_info*)(p_node->data))->modestr);
 		}
-		if(((file_info*)(p1->data))->modestr[9]=='t')
+		if(((file_info*)(p_node->data))->modestr[9]=='t')
 		{
 			printf(" -> ");
-			printf(BLACK_GREEN"%s"NONE,((file_info*)(p1->data))->linkfile);
+			printf(BLACK_GREEN"%s"NONE,((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[3]=='s')	
+		else if(((file_info*)(p_node->data))->modestr[3]=='s')	
 		{
 			printf(" -> ");
-			printf(WHITE_RED"%s"NONE,((file_info*)(p1->data))->linkfile);
+			printf(WHITE_RED"%s"NONE,((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[0]=='l')	
+		else if(((file_info*)(p_node->data))->modestr[0]=='l')	
 		{
 			printf(" -> ");
-			printf(L_CYAN"%s"NONE, ((file_info*)(p1->data))->linkfile);
+			printf(L_CYAN"%s"NONE, ((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[0]=='c'||((file_info*)(p1->data))->modestr[0]=='b')	
+		else if(((file_info*)(p_node->data))->modestr[0]=='c'||((file_info*)(p_node->data))->modestr[0]=='b')	
 		{
 			printf(" -> ");
-			printf(L_YELLOW"%s"NONE, ((file_info*)(p1->data))->linkfile);
+			printf(L_YELLOW"%s"NONE, ((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[0]=='s')	
+		else if(((file_info*)(p_node->data))->modestr[0]=='s')	
 		{
 			printf(" -> ");
-			printf(L_MAGENTA"%s"NONE, ((file_info*)(p1->data))->linkfile);
+			printf(L_MAGENTA"%s"NONE, ((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[0]=='d'&&((file_info*)(p1->data))->modestr[3]=='x')
+		else if(((file_info*)(p_node->data))->modestr[0]=='d'&&((file_info*)(p_node->data))->modestr[3]=='x')
 		{
 			printf(" -> ");
-			printf(BLUE"%s"NONE, ((file_info*)(p1->data))->linkfile);
+			printf(BLUE"%s"NONE, ((file_info*)(p_node->data))->linkfile);
 		}
-		else if(((file_info*)(p1->data))->modestr[3]=='x')
+		else if(((file_info*)(p_node->data))->modestr[3]=='x')
 		{
 			printf(" -> ");
-			printf(GREEN"%s"NONE,((file_info*)(p1->data))->linkfile);
+			printf(GREEN"%s"NONE,((file_info*)(p_node->data))->linkfile);
 		}
 		else
 		{
 			printf(" -> ");
-			printf("%s",((file_info*)(p1->data))->linkfile);
+			printf("%s",((file_info*)(p_node->data))->linkfile);
 		}
 	}
 	
 }
 
-void print_uid_gid(pNODE p1,DList* list)
+void print_uid_gid(pNODE p_node)
 {
 	if(numeric_uid_gid)
 	{
-		printf("%*d ", pw.uid_width,(int)(((file_info*)(p1->data))->stat_buf.st_uid));
+		printf("%*d ", pw.uid_width,(int)(((file_info*)(p_node->data))->stat_buf.st_uid));
 		if(!list_no_group)
-			printf("%*d ", pw.gid_width,(int)(((file_info*)(p1->data))->stat_buf.st_gid));
+			printf("%*d ", pw.gid_width,(int)(((file_info*)(p_node->data))->stat_buf.st_gid));
 	}
 	else
 	{
-		printf("%-*s ", pw.uid_width,uid_to_name(((file_info*)(p1->data))->stat_buf.st_uid));
+		printf("%-*s ", pw.uid_width,uid_to_name(((file_info*)(p_node->data))->stat_buf.st_uid));
 		if(!list_no_group)
-			printf("%-*s ", pw.gid_width,gid_to_name(((file_info*)(p1->data))->stat_buf.st_gid));
+			printf("%-*s ", pw.gid_width,gid_to_name(((file_info*)(p_node->data))->stat_buf.st_gid));
 	}
 }
 
-void print_size_dev(pNODE p1, DList* list)
+void print_size_dev(pNODE p_node)
 {
 	if(pw.major_dev_width==0)
-		printf("%*ld ",pw.size_width,((file_info*)(p1->data))->stat_buf.st_size);
-	else if(((file_info*)(p1->data))->modestr[0]=='c'||((file_info*)(p1->data))->modestr[0]=='b')
+		printf("%*ld ",pw.size_width,((file_info*)(p_node->data))->stat_buf.st_size);
+	else if(((file_info*)(p_node->data))->modestr[0]=='c'||((file_info*)(p_node->data))->modestr[0]=='b')
 	{
 		if(DEV_WIDTH<pw.size_width)
 			print_spaces(pw.size_width-DEV_WIDTH);
-		printf("%*d, ",pw.major_dev_width,major(((file_info*)(p1->data))->stat_buf.st_rdev));
-		printf("%*d ",pw.minor_dev_width,minor(((file_info*)(p1->data))->stat_buf.st_rdev));
+		printf("%*d, ",pw.major_dev_width,major(((file_info*)(p_node->data))->stat_buf.st_rdev));
+		printf("%*d ",pw.minor_dev_width,minor(((file_info*)(p_node->data))->stat_buf.st_rdev));
 	}
 	else
 	{
 		if(DEV_WIDTH>pw.size_width)
 			print_spaces(DEV_WIDTH-pw.size_width);
 		print_spaces(2);
-		printf("%*ld ",pw.size_width,((file_info*)(p1->data))->stat_buf.st_size);
+		printf("%*ld ",pw.size_width,((file_info*)(p_node->data))->stat_buf.st_size);
 	}
 }
 
 
 void show_filename(DList* list)
 {
-	pNODE p1=list->head->next;
 	int flag=0;
-	int max_one_length=pw.filename_width+1;//max_one_length include filename andinode(if exsit)
+	int i_col;
+	int max_one_length=pw.filename_width+2;//max_one_length include filename andinode(if exsit)
 	if(print_with_inode)
 	{
 		flag=1;
 		max_one_length=max_one_length+pw.inode_width+1;
 	}
-	int rows=get_col_row_info(list,max_one_length);
+	col_row_info* p_col_row=malloc(sizeof(col_row_info));
 	int row;
-	for(row=1;row<=rows;row++)
+	int rows=get_col_row_info(list,max_one_length);
+	p_col_row->rows=rows;
+	p_col_row->cols=list->len/p_col_row->rows+(list->len%p_col_row->rows!=0);
+	p_col_row->col=1;
+	p_col_row->row=1;
+//	printf("row:%d col:%d\n",p1->rows,p1->cols);
+	int col_width_array[p_col_row->cols];
+	for(i_col=0;i_col<p_col_row->cols;i_col++)
+		col_width_array[i_col]=0;
+	p_col_row->col_width=col_width_array;
+//	printf("here\n");
+	travel_dbll(list,caculate_col_width_operate,p_col_row);
+//	printf("hre\n");
+	for(p_col_row->row=1;p_col_row->row<=p_col_row->rows;p_col_row->row++)
 	{
 		if(one_per_line&&row==2)
 			break;
-		pNODE p1=list->head->next;
-		while(p1!=NULL)
-		{
-			if(((file_info*)(p1->data))->row_label==row||one_per_line)
-			{
-				print_inode(p1,list);
-				print_filename(p1,list);
-				if(one_per_line)
-				printf("\n");
-					
-			}
-			p1=p1->next;
-		}
+		travel_dbll(list,show_filename_operate,p_col_row);
 		if(!one_per_line)
 			printf("\n");
 	}
+	free(p_col_row);
 }
 
+
+void show_filename_operate(pNODE p_node,void* aide_para)
+{
+	col_row_info *p1=(col_row_info*)aide_para;
+	if(((file_info*)(p_node->data))->row_label==p1->row||one_per_line)
+	{
+		print_inode(p_node);
+		print_filename(p_node,*(p1->col_width+((file_info*)(p_node->data))->col_label-1));
+		if(one_per_line)
+			printf("\n");
+	}
+}
 	
 
 void show_list(DList* list)
 {
-	pNODE p1=list->head->next;
+	char* p_null=NULL;
 	printf("total %d\n",get_total(list));
-	while(p1!=NULL)
-	{
-		print_inode(p1,list);
-		printf("%s ", ((file_info*)(p1->data))->modestr);
-		printf("%*d ",pw.nlink_width, (int)(((file_info*)(p1->data))->stat_buf.st_nlink));
-		print_uid_gid(p1,list);
-		print_size_dev(p1,list);
-	//	printf("%*ld ",7,((file_info*)(p1->data))->stat_buf.st_size);
-		printf("%.12s ", 4 +ctime(&((file_info*)(p1->data))->stat_buf.st_mtime));
-		print_filename(p1,list);
-		print_linkfile(p1,list);
-		printf("\n");
-		p1=p1->next;
-	}
+	travel_dbll(list,show_list_operate,p_null);
 }
 
-
+void show_list_operate(pNODE p_node,void* aide_para)
+{
+	print_inode(p_node);
+	printf("%s ", ((file_info*)(p_node->data))->modestr);
+	printf("%*d ",pw.nlink_width, (int)(((file_info*)(p_node->data))->stat_buf.st_nlink));
+	print_uid_gid(p_node);
+	print_size_dev(p_node);
+//	printf("%*ld ",7,((file_info*)(p1->data))->stat_buf.st_size);
+	printf("%.12s ", 4 +ctime(&((file_info*)(p_node->data))->stat_buf.st_mtime));
+	print_filename(p_node,1);
+	print_linkfile(p_node);
+	printf("\n");
+}
 
 void init_value()
 {
@@ -829,18 +913,18 @@ void init_width()
 
 void free_data(DList* list)
 {
-	pNODE p1=list->head->next;
-	while(p1!=NULL)
-	{
-		free(((file_info*)(p1->data))->filename);
-		free(((file_info*)(p1->data))->filepath);
-		if(((file_info*)(p1->data))->modestr[0]=='l')
-			free(((file_info*)(p1->data))->linkfile);
-		p1=p1->next;
-	}
+	char* p_null=NULL;
+	travel_dbll(list,free_data_operate,p_null);
 }
 
+void free_data_operate(pNODE p_node,void* aide_para)
+{
+	free(((file_info*)(p_node->data))->filename);
+	free(((file_info*)(p_node->data))->filepath);
+	if(((file_info*)(p_node->data))->linkfile!=NULL)
+		free(((file_info*)(p_node->data))->linkfile);
 
+}
 
 void print_spaces(int num)
 {
