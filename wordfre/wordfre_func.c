@@ -7,7 +7,6 @@ void show_word_list(DList*list)  //Traversing the linked list
                 printf("the list is empty!\n");
                 return;
         }
-        pNODE p_node= list->head->next;
         printf("Print list as follow：  \n ");
 		char* p_null=NULL;
         travel_dbll(list,show_operate,p_null);

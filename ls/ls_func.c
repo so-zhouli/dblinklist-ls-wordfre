@@ -150,21 +150,21 @@ void mode_to_letters(int mode, char *str)
 	if( mode & S_IXOTH) str[9] = 'x';
 	if(mode &  S_ISVTX)//sticky bit
 	{
-		if(str[9]='x')
+		if(str[9]=='x')
 			str[9]='t';
 		else
 			str[9]='T';
 	}
 	if(mode & S_ISUID)//suid
 	{
-		if(str[3]='x')
+		if(str[3]=='x')
 			str[3]='s';
 		else
 			str[3]='S';
 	}
 	if(mode & S_ISGID)//sgid
 	{
-		if(str[6]='x')
+		if(str[6]=='x')
 			str[6]='s';
 		else
 			str[6]='S';
@@ -324,6 +324,7 @@ int compare_name(void* elem1,void* elem2)
 			j++;
 		}
 	}
+	return 0;
 
 }
 
@@ -553,29 +554,28 @@ void get_print_width(DList* list)
 //	printf("minor:%d\n",pw.minor_dev_width);
 }
 
-
+/*caculate first time by the max filename length and one space (if inode need to be listed,the same with filename),then let rows minus one,keep on and make sure filename to be listed per row as more as posible*/
 int get_col_row_info(DList*list,int max_one_length)
 {
 	
 	struct winsize size;
-	ioctl(STDIN_FILENO,TIOCGWINSZ,&size);
+	ioctl(STDIN_FILENO,TIOCGWINSZ,&size);//get terminal width 
 	int rows;
 	int cols;
 	int i=0;
-	int col=1;
 	col_row_info* p_col_row=malloc(sizeof(col_row_info));
 	cols=size.ws_col/max_one_length;
 //	printf("size.ws_col:%d\n",size.ws_col);
 //	printf("max_length:%d\n",max_filename_length);
 //	printf("cols:%d\n",cols);
 	rows=list->len/cols+(list->len%cols!=0);
-	cols=list->len/rows+(list->len%rows!=0);//确定输出的行数和列数
+	cols=list->len/rows+(list->len%rows!=0);//
 	p_col_row->rows=rows;
 	p_col_row->cols=cols;
 //	printf("rows:%d   cols:%d\n",rows,cols);
 	while(rows!=0)
 	{
-		int col_width_array[cols];//每列文件名最大长度
+		int col_width_array[cols];//recording the max width in  cols
 		int sum_col_width=0;
 		for(i=0;i<cols;i++)
 			col_width_array[i]=0;
@@ -586,12 +586,8 @@ int get_col_row_info(DList*list,int max_one_length)
 		for(i=0;i<cols;i++)
 		{
 			sum_col_width+=col_width_array[i];
-		//	printf("col:%d  width:%d\n",i+1,col_width_array[i]);
-		//	printf("\n");
 		}
-	//	printf("sum:%d\n",sum_col_width);
-	//	printf("inode:%d\n",pw.inode_width*(print_with_inode?1:0));
-		if((sum_col_width+cols*2+(pw.inode_width+1)*cols*(print_with_inode?1:0))>size.ws_col)
+		if((sum_col_width+cols*2+(pw.inode_width+1)*cols*(print_with_inode?1:0))>size.ws_col)//judge whether the files can list normally according by corrent cols and rows
 		{
 			p_col_row->rows++;
 			p_col_row->cols=list->len/p_col_row->rows+(list->len%p_col_row->rows!=0);
@@ -600,33 +596,29 @@ int get_col_row_info(DList*list,int max_one_length)
 		if(rows-1==0)
 			break;
 		rows--;
-		cols=list->len/rows+(list->len%rows!=0);//确定输出的行数和列数
+		cols=list->len/rows+(list->len%rows!=0);
 		p_col_row->rows=rows;
 		p_col_row->cols=cols;
 	}
-//	printf("final rows:%d  final cols:%d\n",p1->rows,p1->cols);
 	p_col_row->row=1;
 	p_col_row->col=1;
-	travel_dbll(list,label_col_row_operate,p_col_row);//遍历，每个文件名添加行列标志
+	travel_dbll(list,label_col_row_operate,p_col_row);//label the file by col and row
 	rows=p_col_row->rows;
 	free(p_col_row);
 	return rows;
 }
-
+/*caculate max width filename in each col */
 void caculate_col_width_operate(pNODE p_node,void* aide_para)
 {
 	col_row_info* p_col_row=(col_row_info*)aide_para;
 	if(p_col_row->row<=p_col_row->rows)
 	{
-	//	printf("11\n");
 		if(*(p_col_row->col_width+p_col_row->col-1)<((file_info*)(p_node->data))->filename_length)
 			*(p_col_row->col_width+p_col_row->col-1)=((file_info*)(p_node->data))->filename_length;
 		p_col_row->row++;
-	//	printf("33");
 	}
 	else
 	{
-	//	printf("22");
 		p_col_row->col++;
 		p_col_row->row=1;
 		if(*(p_col_row->col_width+p_col_row->col-1)<((file_info*)(p_node->data))->filename_length)
@@ -634,7 +626,7 @@ void caculate_col_width_operate(pNODE p_node,void* aide_para)
 		p_col_row->row++;
 	}
 }
-
+/*label file by col and row */
 void label_col_row_operate(pNODE p_node,void* aide_para)
 {
 	col_row_info* p_col_row=(col_row_info*)aide_para;
@@ -658,6 +650,7 @@ void label_col_row_operate(pNODE p_node,void* aide_para)
 
 }
 
+/*total is one equal 4K,one st_block is equal to 512bytes*/
 int get_total(DList* list)
 {
 	int block_num=0;
@@ -814,19 +807,16 @@ void print_size_dev(pNODE p_node)
 	}
 }
 
-
+/*show filename by col and row */
 void show_filename(DList* list)
 {
-	int flag=0;
 	int i_col;
 	int max_one_length=pw.filename_width+2;//max_one_length include filename andinode(if exsit)
 	if(print_with_inode)
 	{
-		flag=1;
 		max_one_length=max_one_length+pw.inode_width+1;
 	}
 	col_row_info* p_col_row=malloc(sizeof(col_row_info));
-	int row;
 	int rows=get_col_row_info(list,max_one_length);
 	p_col_row->rows=rows;
 	p_col_row->cols=list->len/p_col_row->rows+(list->len%p_col_row->rows!=0);
@@ -837,12 +827,10 @@ void show_filename(DList* list)
 	for(i_col=0;i_col<p_col_row->cols;i_col++)
 		col_width_array[i_col]=0;
 	p_col_row->col_width=col_width_array;
-//	printf("here\n");
 	travel_dbll(list,caculate_col_width_operate,p_col_row);
-//	printf("hre\n");
 	for(p_col_row->row=1;p_col_row->row<=p_col_row->rows;p_col_row->row++)
 	{
-		if(one_per_line&&row==2)
+		if(one_per_line&&p_col_row->row==2)
 			break;
 		travel_dbll(list,show_filename_operate,p_col_row);
 		if(!one_per_line)
@@ -872,6 +860,7 @@ void show_list(DList* list)
 	travel_dbll(list,show_list_operate,p_null);
 }
 
+/* show detail information*/
 void show_list_operate(pNODE p_node,void* aide_para)
 {
 	print_inode(p_node);

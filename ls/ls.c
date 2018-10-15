@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 				break;
 			default:
 				printf("other options:%c\n",opt);
-				return;
+				return 0;
 		}
 	}
 		
@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
 					printf("\n");
 			}
 		}
+	return 0;
 }
 
 

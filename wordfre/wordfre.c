@@ -1,15 +1,14 @@
 #include"dbll.h"
 #include"wordfre.h"
 
-
+/*search the word in the word list,if already exist,then let the num to one,else insert the new word */
 void find_word_insert(word*ahead,DList*list,DList*total_list)
 {
-    dbll_compare_cb compare;
+	pNODE p;
 	if(opt_create_case)
-        compare=compare_findword_case;
+		p=search_elem_dbll(list,ahead,compare_findword_case);
     else
-        compare=compare_findword;
-	pNODE p=search_elem_dbll(list,ahead,compare);
+		p=search_elem_dbll(list,ahead,compare_findword);
     if(p==NULL)
     {
          word* p_new=(word*)malloc(sizeof(word));
@@ -23,10 +22,10 @@ void find_word_insert(word*ahead,DList*list,DList*total_list)
         ((word*)(p->data))->num++;
 
 }
-
+/* read paper*/
 void operate(DList*word_list[27],char filename[])
 {  
-	int i=0,j,t=0;
+	int i=0,j;
 	int flag=0;
 	word*ahead=(word*)malloc(sizeof(word));
 	FILE*fp;
@@ -219,19 +218,17 @@ int main(int argc,char* argv[])
     }
     operate(word_list,filename);
     //quicksort by word or pos num
-	dbll_compare_cb compare;
 	if(opt_num_sort||opt_word_sort||opt_pos_sort)
     {
 		if(opt_num_sort)
-            compare=compare_num;
+ 	    	quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare_num);
         else if(opt_pos_sort)
-            compare=compare_pos;
+        	quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare_pos);
         else if(opt_create)
-            compare=compare_word;
+        	quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare_word);
         else
-            compare=compare_word_case;
+        	quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare_word_case);
             
-        quick_sort_dbll(word_list[0]->head->next,word_list[0]->tail,1,word_list[0]->len,compare);
     }
     if(opt_show||opt_reverse_show)
     {

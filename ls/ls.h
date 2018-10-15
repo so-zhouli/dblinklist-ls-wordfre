@@ -22,7 +22,7 @@
 #define DEV_WIDTH (pw.major_dev_width+pw.minor_dev_width)
 #define PRINT_WIDTH  (print_list||list_no_group||numeric_uid_gid)?(0):(fmt_width+2-strlen(((file_info*)(p_node->data))->filename))
 
-
+/* three sort types can be selected ,filename,filesize,modified time*/
 enum sort_type
 {
 	sort_none,
@@ -40,16 +40,20 @@ bool reserve_all;//all files
 
 bool one_per_line;//print one per line
 
+/* list without gopupname or group id*/
 bool list_no_group;
 
+/* list inode number before filename*/
 bool print_with_inode;
 
 bool show_linkfile;//SHOW LINKFILE RATHER NOT LINK
 
+/*show user id or group id rather than their name */
 bool numeric_uid_gid;
 
 bool print_list;//list detail information 
 
+/* print width will be used for print format*/
 struct print_width
 {
 	int filename_width;
@@ -86,7 +90,10 @@ typedef struct file_info
 	char* filepath;//dirpath /filename
 }file_info;
 
+/* read diretory and get all filename,but if given path is a filename,then stat it directly*/
 void do_ls(char* dirname,DList* list);
+
+/* dostat and get_file_info */
 void dostat(char* filename,char* dirpath,file_info* file_info_new);
 void get_file_info(char* filepath,file_info* file_info_new);
 void mode_to_letters(int mode,char* str);
