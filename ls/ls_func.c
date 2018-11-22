@@ -921,3 +921,22 @@ void print_spaces(int num)
 		printf(" ");
 
 }
+
+
+
+void usage()
+{
+	printf("Usage: ./ls [OPTION]... [FILE]...\n");
+	printf("-a	do not ignore entries starting with .\n");
+	printf("-A	do not list implied . and ..\n");
+	printf("-B	do not list implied entries ending with ~\n");
+	printf("-l	use a long listing format\n");
+	printf("-1	list one file per line\n");
+	printf("-L	when showing file information for a symbolic link,show information for the link references rather than the link itself\n");
+	printf("-o	like -l,but not list the group information\n");
+	printf("-n	like -l,but list numeric user and group IDs\n");
+	printf("-i	printf the index number of each file\n");
+	printf("-t	sort by modification time,newest first\n");
+	printf("-s	sort by allocated size of each file,in blocks\n");
+	printf("-f	do not sort\n");
+}

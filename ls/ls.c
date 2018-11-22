@@ -56,6 +56,9 @@ int main(int argc, char* argv[])
 			case 's':
 				sort_type=sort_size;
 				break;
+			case 'h':
+				usage();
+				break;
 			default:
 				printf("other options:%c\n",opt);
 				return 0;
