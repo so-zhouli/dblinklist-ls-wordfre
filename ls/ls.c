@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 				break;
 			case 'h':
 				usage();
-				break;
+				return;
 			default:
 				printf("other options:%c\n",opt);
 				return 0;
